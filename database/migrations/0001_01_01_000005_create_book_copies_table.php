@@ -20,6 +20,10 @@ return new class extends Migration
 
             $table->string('copy_code')->unique();
 
+            $table->uuid('reservation_reference')
+                ->nullable()
+                ->unique();
+
             $table->string('status', 20)
                 ->default('AVAILABLE')
                 ->index();
