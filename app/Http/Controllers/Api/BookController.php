@@ -7,10 +7,19 @@ use App\Models\Book;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Validation\Rule;
 
 class BookController extends Controller
 {
+    private $start, $correlationId;
+
+    public function __construct()
+    {
+        $this->start = $start = microtime(true);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $query = Book::query()
@@ -30,6 +39,16 @@ class BookController extends Controller
         if ($request->filled('author_id')) {
             $query->where('author_id', $request->integer('author_id'));
         }
+
+        $duration = (microtime(true) - $this->start) * 1000;
+
+        $logData = [
+            'uuid' => $this->correlationId,
+            'end_point' => 'api/books',
+            'span' => $duration
+        ];
+
+        Log::info($logData);
 
         return response()->json(
             $query->orderBy('title')->paginate(10)
@@ -76,6 +95,28 @@ class BookController extends Controller
         ]);
 
         $book = Book::create($validated);
+
+        // 2. Prepare a service-independent message payload.
+        $event = [
+            'event_id' => (string) \Illuminate\Support\Str::uuid(),
+            'event_type' => 'NewBookPublished',
+            'occurred_at' => now()->toISOString(),
+            'data' => [
+                'id' => $book->id,
+                'name' => $book->title,
+                'isbn' => $book->isbn
+            ],
+        ];
+
+        // 3. Publish the JSON message to a Redis list.
+        Redis::publish('new-book-published', json_encode($event));
+
+        // 4. Log the producer activity.
+        Log::info('MESSAGE PRODUCED', [
+            'service' => 'library-book-services',
+            'queue' => 'new-book-published',
+            'event' => $event,
+        ]);
 
         return response()->json(
             $book->load('author'),

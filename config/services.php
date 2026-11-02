@@ -14,6 +14,8 @@ return [
     |
     */
 
+    'accept_secrets' => env('ACCEPT_SECRET'),
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

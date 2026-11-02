@@ -7,17 +7,19 @@ use App\Models\Author;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Validation\Rule;
 
 class AuthorController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         return response()->json(
             Author::query()
                 ->withCount('books')
                 ->orderBy('name')
-                ->paginate(10)
+                ->paginate(($request->total_per_page) ? $request->total_per_page : 10)
         );
     }
 
@@ -36,6 +38,13 @@ class AuthorController extends Controller
         ]);
 
         $author = Author::create($validated);
+
+        Redis::publish('orders-channel', json_encode([
+            'event' => 'order.created',
+            'order_id' => 9981,
+        ]));
+
+        Log::info('insert author');
 
         return response()->json($author, Response::HTTP_CREATED);
     }

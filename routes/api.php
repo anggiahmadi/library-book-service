@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Route;
 Route::apiResource('authors', AuthorController::class);
 Route::apiResource('books', BookController::class);
 
+Route::post('trigger-publish', [AuthorController::class, 'testingRedis']);
+
 Route::get(
     'books/{book}/copies',
     [BookCopyController::class, 'index']
