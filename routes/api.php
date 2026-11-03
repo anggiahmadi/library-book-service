@@ -21,6 +21,16 @@ Route::post(
     [BookCopyController::class, 'store']
 );
 
+Route::put(
+    'book-copies/{bookCopy}',
+    [BookCopyController::class, 'update']
+);
+
+Route::delete(
+    'book-copies/{bookCopy}',
+    [BookCopyController::class, 'destroy']
+);
+
 Route::get(
     'book-copies/{bookCopy}/availability',
     [BookCopyController::class, 'availability']
